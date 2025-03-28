@@ -97,7 +97,7 @@ class AuthController extends MiniEngine_Controller
         $factory = new WebauthnSerializerFactory($attestation_statement_support_manager);
         $serializer = $factory->create();
 
-        $json_object = $serializer->serialize(
+        $json_string = $serializer->serialize(
             $public_key_credential_creation_options,
             'json',
             [
@@ -106,6 +106,6 @@ class AuthController extends MiniEngine_Controller
             ]
         );
 
-        return $json_object;
+        return json_decode($json_string);
     }
 }
