@@ -85,12 +85,13 @@ class AuthController extends MiniEngine_Controller
 
         $public_key_credential_creation_options =
             PublicKeyCredentialCreationOptions::create(
-                $RP_entity,
-                $user_entity,
-                $challenge
+                rp: $RP_entity,
+                user: $user_entity,
+                challenge: $challenge,
+                timeout: 90000
             );
 
-        //TODO need to store $user_entity, $challenge and $public_key_credential_creation_options
+        MiniEngine::setSession('webauthn_user_entity', serialize($user_entity));
 
         $attestation_statement_support_manager = AttestationStatementSupportManager::create();
         $attestation_statement_support_manager->add(NoneAttestationStatementSupport::create());
@@ -105,6 +106,8 @@ class AuthController extends MiniEngine_Controller
                 JsonEncode::OPTIONS => JSON_THROW_ON_ERROR, // Optional
             ]
         );
+
+        MiniEngine::setSession('webauthn_credential_options', $json_string);
 
         return json_decode($json_string);
     }
