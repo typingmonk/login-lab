@@ -36,7 +36,7 @@ class AuthController extends MiniEngine_Controller
         }
     }
 
-    public function registerwebAuthnAction()
+    public function registerWebAuthnAction()
     {
         $this->init_csrf();
         $json_data = file_get_contents('php://input');
@@ -56,26 +56,14 @@ class AuthController extends MiniEngine_Controller
         }
 
         if (!$isLoggedIn) {
-            $login_id = $data->username ?? null;
-        } else {
-            $login_id = $user->getUserAssociatePassword()->login_id ?? null;
+            return $this->json(['error' => 'Need login first']);
         }
 
-        if (is_null($login_id)) {
-            return $this->json(['error' => 'Need username for registration']);
-        }
-
-        $displayname = $user->displayname ?? $login_id;
-        if (!$isLoggedIn) {
-            $temp_user_id = bin2hex(random_bytes(16));
-            MiniEngine::setSession('temp_user_id', $temp_user_id);
-            $user_id = $temp_user_id;
-        }
-
+        $login_id = $user->getUserAssociatePassword()->login_id;
+        $displayname = $user->displayname;
         $public_key_credential_creation_options = self::createWebAuthnCreationOptions($login_id, $user_id, $displayname);
 
         return $this->json($public_key_credential_creation_options);
-
     }
 
     public function logoutAction()
@@ -101,6 +89,8 @@ class AuthController extends MiniEngine_Controller
                 $user_entity,
                 $challenge
             );
+
+        //TODO need to store $user_entity, $challenge and $public_key_credential_creation_options
 
         $attestation_statement_support_manager = AttestationStatementSupportManager::create();
         $attestation_statement_support_manager->add(NoneAttestationStatementSupport::create());
