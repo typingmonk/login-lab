@@ -1,17 +1,43 @@
 function requestWebAuthn(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    
-    $.post('/auth/requestWebAuthn',
-      JSON.stringify(data),
-      getWebAuthnCredential,
-      'json'
-    );
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData.entries());
+
+  $.post('/auth/requestWebAuthn',
+    JSON.stringify(data),
+    getWebAuthnCredential,
+    'json'
+  );
 }
 
-function getWebAuthnCredential(publicKeyOptions) {
-    console.log(publicKeyOptions);
-    //TODO using navigator.credentials.get
+async function getWebAuthnCredential(publicKeyOptions) {
+  publicKeyOptions.challenge = base64toArrayBuffer(publicKeyOptions.challenge);
+  if (publicKeyOptions.allowCredentials) {
+    for (let i = 0; i < publicKeyOptions.allowCredentials.length; i++) {
+      idArrayBuffer = base64toArrayBuffer(publicKeyOptions.allowCredentials[i].id);
+      publicKeyOptions.allowCredentials[i].id = idArrayBuffer;
+    }
+  }
+
+  const credential = await navigator.credentials.get({
+    publicKey: publicKeyOptions
+  });
+
+  const credentialData = {
+    id: credential.id,
+    rawId: arrayBufferToBase64(credential.rawId),
+    type: credential.type,
+    response: {
+      authenticatorData: arrayBufferToBase64(credential.response.authenticatorData),
+      clientDataJSON: arrayBufferToBase64(credential.response.clientDataJSON),
+      signature: arrayBufferToBase64(credential.response.signature)
+    },
+    csrf_token: $('input[name="csrf_token"]').val(),
+  };
+
+  alert(credentialData);
+
+  console.log(credentialData);
+  //TODO credentialData send to server
 }
