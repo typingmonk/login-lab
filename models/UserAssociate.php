@@ -96,9 +96,10 @@ class UserAssociate extends MiniEngine_Table
             return null;
         }
 
+        $user_id = $user_associate_password->user_id;
         $user_associate_web_authn = self::search([
             'login_type' => 'web_authn',
-            'user_id' => $user_associate_password->user_id,
+            'user_id' => $user_id,
         ])->first();
 
         $login_data = (object) ['user_id' => $user_id];

@@ -6,9 +6,12 @@ function requestWebAuthn(event) {
     
     $.post('/auth/requestWebAuthn',
       JSON.stringify(data),
-      function(publicKeyOptions) {
-          console.log(publicKeyOptions);
-      },
+      getWebAuthnCredential,
       'json'
-    )
+    );
+}
+
+function getWebAuthnCredential(publicKeyOptions) {
+    console.log(publicKeyOptions);
+    //TODO using navigator.credentials.get
 }

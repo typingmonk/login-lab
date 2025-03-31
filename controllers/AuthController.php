@@ -12,6 +12,8 @@ use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Webauthn\AuthenticatorAttestationResponse;
 use Webauthn\CeremonyStep\CeremonyStepManagerFactory;
 use Webauthn\AuthenticatorAttestationResponseValidator;
+use Webauthn\PublicKeyCredentialSource;
+use Webauthn\PublicKeyCredentialRequestOptions;
 
 class AuthController extends MiniEngine_Controller
 {
@@ -183,7 +185,19 @@ class AuthController extends MiniEngine_Controller
             return $this->json(['error' => 'Already logged in']);
         }
 
-        return $this->json(['error' => 'WIP']);
+        $target_user_id = MiniEngine::getSession('target_user_id');
+        $user_associates = UserAssociate::search([
+            'user_id' => $target_user_id,
+            'login_type' => 'web_authn',
+        ]);
+
+        if ($user_associates->count() == 0) {
+            return $this->json(['error' => 'No credential found']);
+        }
+
+        $public_key_credential_request_options = self::createWebAuthnRequestOptions($user_associates);
+
+        return $this->json($public_key_credential_request_options);
     }
 
     public function logoutAction()
@@ -225,6 +239,37 @@ class AuthController extends MiniEngine_Controller
         );
 
         MiniEngine::setSession('webauthn_credential_options', $json_string);
+
+        return json_decode($json_string);
+    }
+
+    private static function createWebAuthnRequestOptions($user_associates)
+    {
+        $serializer = self::getSerializer();
+        $allowed_credentials = [];
+        $user_associates = $user_associates->toArray('auth_credential');
+        foreach ($user_associates as $user_associate) {
+            $credential = $serializer->deserialize(
+                $user_associate,
+                PublicKeyCredentialSource::class,
+                'json'
+            );
+            $allowed_credentials[] = $credential->getPublicKeyCredentialDescriptor();
+        }
+
+        $public_key_credential_request_options = PublicKeyCredentialRequestOptions::create(
+            random_bytes(32),
+            allowCredentials: $allowed_credentials
+        );
+
+        $json_string = $serializer->serialize(
+            $public_key_credential_request_options,
+            'json',
+            [
+                AbstractObjectNormalizer::SKIP_NULL_VALUES => true,
+                JsonEncode::OPTIONS => JSON_THROW_ON_ERROR,
+            ]
+        );
 
         return json_decode($json_string);
     }
