@@ -160,6 +160,32 @@ class AuthController extends MiniEngine_Controller
         return $this->json(['success' => true, 'message' => 'WebAuthn Registration Success.']);
     }
 
+    public function requestWebAuthnAction()
+    {
+        $this->init_csrf();
+        $json_data = file_get_contents('php://input');
+        $data = json_decode($json_data);
+        $csrf_token = $data->csrf_token ?? null;
+
+        if ($csrf_token !== $this->view->csrf_token) {
+            return $this->json(['error' => 'Invalid CSRF token']);
+        }
+
+        $isLoggedIn = false;
+        $user_id = MiniEngine::getSession('user_id');
+        $user = null;
+        if (isset($user_id)) {
+            $user = User::find($user_id);
+            $isLoggedIn = isset($user);
+        }
+
+        if ($isLoggedIn) {
+            return $this->json(['error' => 'Already logged in']);
+        }
+
+        return $this->json(['error' => 'WIP']);
+    }
+
     public function logoutAction()
     {
         MiniEngine::deleteSession('user_id');
