@@ -22,7 +22,7 @@ $auth_method = $this->auth_method;
           <?php } ?>
           <?php if ($auth_method == 'web_authn') { ?>
             <h1 class="mb-3 fs-2 fw-normal text-center">Login with WebAuthn</h1>
-            <form onsubmit="registerWebAuthn(event)">
+            <form onsubmit="requestWebAuthn(event)">
               <input type="hidden" name="csrf_token" value="<?= $this->escape($this->csrf_token) ?>">
               <div class="text-center">
                 <button type="submit" class="btn btn-primary">Next</button>
@@ -35,5 +35,6 @@ $auth_method = $this->auth_method;
   </div>
 </main>
 <?php if ($auth_method == 'web_authn') { ?>
+<script src="/static/js/requestWebAuthn.js"></script>
 <?php } ?>
 <?= $this->partial('common/footer') ?>
