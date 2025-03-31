@@ -137,7 +137,8 @@ class AuthController extends MiniEngine_Controller
             ]
         );
 
-        return $this->json(['error' => 'controller WIP']);
+        $user_associate = UserAssociate::createViaWebAuthn($user_id, $public_key_credential_source_json_string);
+        return $this->json(['success' => true, 'message' => 'WebAuthn Registration Success.']);
     }
 
     public function logoutAction()

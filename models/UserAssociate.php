@@ -60,4 +60,28 @@ class UserAssociate extends MiniEngine_Table
             return null;
         }
     }
+
+    public static function createViaWebAuthn($user_id, $public_key_credential_source, $info = [])
+    {
+        $user = User::find($user_id);
+        if (is_null($user)) {
+            throw new Exception("No such user with user_id: $user_id");
+        }
+
+        $user_associate_data = [
+            'user_id' => $user_id,
+            'login_type' => 'webAuthn',
+            'auth_credential' => $public_key_credential_source,
+            'info' => json_encode($info),
+        ];
+
+        try {
+            $user_associate = self::insert($user_associate_data);
+            return $user_associate;
+        } catch (Exception $e) {
+            error_log("Error creating user: " . $e->getMessage());
+            var_dump($e->getMessage());
+            return null;
+        }
+    }
 }
