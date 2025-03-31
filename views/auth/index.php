@@ -35,6 +35,7 @@ $auth_method = $this->auth_method;
   </div>
 </main>
 <?php if ($auth_method == 'web_authn') { ?>
+<script src="/static/js/helper.js"></script>
 <script src="/static/js/requestWebAuthn.js"></script>
 <?php } ?>
 <?= $this->partial('common/footer') ?>

@@ -52,5 +52,6 @@ if (isset($user_id)) {
     </div>
   </div>
 </main>
+<script src="/static/js/helper.js"></script>
 <script src="/static/js/registerWebAuthn.js"></script>
 <?= $this->partial('common/footer') ?>
