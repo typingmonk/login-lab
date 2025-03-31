@@ -15,6 +15,25 @@ use Webauthn\AuthenticatorAttestationResponseValidator;
 
 class AuthController extends MiniEngine_Controller
 {
+    public function indexAction()
+    {
+        $this->init_csrf();
+        $csrf_token = $_POST['csrf_token'] ?? null;
+        if ($csrf_token !== $this->view->csrf_token) {
+            return $this->alert("Invalid CSRF token", '/');
+        }
+
+        $username = $_POST['username'] ?? null;
+        $login_data = UserAssociate::getLoginData($username);
+
+        if (is_null($login_data)) {
+            return $this->alert("Couldn't find your account", '/');
+        }
+
+        MiniEngine::setSession('target_user_id', $login_data->user_id);
+        $this->view->auth_method = $login_data->auth_method;
+    }
+
     public function passwordLoginAction()
     {
         $this->init_csrf();

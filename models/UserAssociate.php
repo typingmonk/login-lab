@@ -70,7 +70,7 @@ class UserAssociate extends MiniEngine_Table
 
         $user_associate_data = [
             'user_id' => $user_id,
-            'login_type' => 'webAuthn',
+            'login_type' => 'web_authn',
             'auth_credential' => $public_key_credential_source,
             'info' => json_encode($info),
         ];
@@ -83,5 +83,31 @@ class UserAssociate extends MiniEngine_Table
             var_dump($e->getMessage());
             return null;
         }
+    }
+
+    public static function getLoginData($username)
+    {
+        $user_associate_password = self::search([
+            'login_type' => 'password',
+            'login_id' => $username,
+        ])->first();
+
+        if (is_null($user_associate_password)) {
+            return null;
+        }
+
+        $user_associate_web_authn = self::search([
+            'login_type' => 'web_authn',
+            'user_id' => $user_associate_password->user_id,
+        ])->first();
+
+        $login_data = (object) ['user_id' => $user_id];
+        if (isset($user_associate_web_authn)) {
+            $login_data->auth_method = 'web_authn';
+        } else {
+            $login_data->auth_method = 'password';
+        }
+
+        return $login_data;
     }
 }

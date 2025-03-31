@@ -14,22 +14,20 @@ if (isset($user_id)) {
       <div class="col-md-4"></div>
         <div class="col-md-4">
           <?php if (!$isLoggedIn) { ?>
-            <h1 class="mb-3 display-6 fw-normal text-center">Please sign in</h1>
-            <form method="post" action="/auth/passwordLogin">
+            <h1 class="mb-3 fs-2 fw-normal text-center">Enter username</h1>
+            <form method="post" action="/auth">
               <div class="mb-3">
                 <label for="username" class="form-label">使用者名稱</label>
                 <input id="username" name="username" type="text" class="form-control">
               </div>
-              <div class="mb-3">
-                <label for="password" class="form-label">密碼</label>
-                <input id="password" name="password" type="password" class="form-control">
-              </div>
               <input type="hidden" name="csrf_token" value="<?= $this->escape($this->csrf_token) ?>">
-              <button type="submit" class="btn btn-primary">Submit</button>
+              <div class="text-center">
+                <button type="submit" class="btn btn-primary">Submit</button>
+              </div>
             </form>
           <?php } ?>
           <?php if ($isLoggedIn) { ?>
-            <p class="mb-3 display-6 ">Hello <span class="fw-semibold"><?= $this->escape($user->displayname) ?></span></p>
+            <p class="mb-3 fs-2 ">Hello <span class="fw-semibold"><?= $this->escape($user->displayname) ?></span></p>
             <div class="card mb-3">
               <div class="card-body">
                 <h2 class="mb-3 fs-5 card-title">基本功能</h2>

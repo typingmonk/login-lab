@@ -1,0 +1,39 @@
+<?php
+$auth_method = $this->auth_method;
+?>
+<?= $this->partial('common/header') ?>
+<main>
+  <div class="container" style="max-width: 1120px;">
+    <div class="row pt-5 pb-4">
+      <div class="col-md-4"></div>
+        <div class="col-md-4">
+          <?php if ($auth_method == 'password') { ?>
+            <h1 class="mb-3 fs-2 fw-normal text-center">Login with password</h1>
+            <form method="post" action="/auth/passwordLogin">
+              <div class="mb-3">
+                <label for="password" class="form-label">密碼</label>
+                <input id="password" name="password" type="password" class="form-control">
+              </div>
+              <input type="hidden" name="csrf_token" value="<?= $this->escape($this->csrf_token) ?>">
+              <div class="text-center">
+                <button type="submit" class="btn btn-primary">Submit</button>
+              </div>
+            </form>
+          <?php } ?>
+          <?php if ($auth_method == 'web_authn') { ?>
+            <h1 class="mb-3 fs-2 fw-normal text-center">Login with WebAuthn</h1>
+            <form onsubmit="registerWebAuthn(event)">
+              <input type="hidden" name="csrf_token" value="<?= $this->escape($this->csrf_token) ?>">
+              <div class="text-center">
+                <button type="submit" class="btn btn-primary">Next</button>
+              </div>
+            </form>
+          <?php } ?>
+        </div>
+      <div class="col-md-4"></div>
+    </div>
+  </div>
+</main>
+<?php if ($auth_method == 'web_authn') { ?>
+<?php } ?>
+<?= $this->partial('common/footer') ?>
