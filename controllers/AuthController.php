@@ -1,5 +1,6 @@
 <?php
 
+use Webauthn\PublicKeyCredential;
 use Webauthn\PublicKeyCredentialRpEntity;
 use Webauthn\PublicKeyCredentialUserEntity;
 use Webauthn\PublicKeyCredentialCreationOptions;
@@ -8,6 +9,9 @@ use Webauthn\AttestationStatement\NoneAttestationStatementSupport;
 use Webauthn\Denormalizer\WebauthnSerializerFactory;
 use Symfony\Component\Serializer\Encoder\JsonEncode;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
+use Webauthn\AuthenticatorAttestationResponse;
+use Webauthn\CeremonyStep\CeremonyStepManagerFactory;
+use Webauthn\AuthenticatorAttestationResponseValidator;
 
 class AuthController extends MiniEngine_Controller
 {
@@ -66,6 +70,76 @@ class AuthController extends MiniEngine_Controller
         return $this->json($public_key_credential_creation_options);
     }
 
+    public function verifyWebAuthnRegistrationAction()
+    {
+        $this->init_csrf();
+        $json_data = file_get_contents('php://input');
+        $data = json_decode($json_data);
+        $csrf_token = $data->csrf_token ?? null;
+
+        if ($csrf_token !== $this->view->csrf_token) {
+            return $this->json(['error' => 'Invalid CSRF token']);
+        }
+
+        $isLoggedIn = false;
+        $user_id = MiniEngine::getSession('user_id');
+        $user = null;
+        if (isset($user_id)) {
+            $user = User::find($user_id);
+            $isLoggedIn = isset($user);
+        }
+
+        if (!$isLoggedIn) {
+            return $this->json(['error' => 'Need login first']);
+        }
+
+        $data_str = json_encode($data);
+
+        $attestation_statement_support_manager = self::getAttestationStatementSupportManager();
+        $serializer = self::getSerializer($attestation_statement_support_manager);
+
+        $public_key_credential = $serializer->deserialize(
+            $data_str,
+            PublicKeyCredential::class,
+            'json'
+        );
+
+        //check client is in attestation step
+        if (!$public_key_credential->response instanceof AuthenticatorAttestationResponse) {
+            return $this->json(['error' => 'Invalid credential response type']);
+        }
+
+        //get validator
+        $creation_CSM = self::getCeremonyStepManager('creation');
+        $authenticator_attestation_response_validator = AuthenticatorAttestationResponseValidator::create($creation_CSM);
+
+        //get credential options back from session
+        $json_string = MiniEngine::getSession('webauthn_credential_options');
+        $public_key_credential_creation_options = $serializer->deserialize(
+            $json_string,
+            PublicKeyCredentialCreationOptions::class,
+            'json'
+        );
+
+        //vaildate
+        $public_key_credential_source = $authenticator_attestation_response_validator->check(
+            $public_key_credential->response,
+            $public_key_credential_creation_options,
+            $_SERVER['HTTP_HOST'],
+        );
+
+        $public_key_credential_source_json_string = $serializer->serialize(
+            $public_key_credential_source,
+            'json',
+            [
+                AbstractObjectNormalizer::SKIP_NULL_VALUES => true,
+                JsonEncode::OPTIONS => JSON_THROW_ON_ERROR,
+            ]
+        );
+
+        return $this->json(['error' => 'controller WIP']);
+    }
+
     public function logoutAction()
     {
         MiniEngine::deleteSession('user_id');
@@ -93,22 +167,48 @@ class AuthController extends MiniEngine_Controller
 
         MiniEngine::setSession('webauthn_user_entity', serialize($user_entity));
 
-        $attestation_statement_support_manager = AttestationStatementSupportManager::create();
-        $attestation_statement_support_manager->add(NoneAttestationStatementSupport::create());
-        $factory = new WebauthnSerializerFactory($attestation_statement_support_manager);
-        $serializer = $factory->create();
+        $serializer = self::getSerializer();
 
         $json_string = $serializer->serialize(
             $public_key_credential_creation_options,
             'json',
             [
-                AbstractObjectNormalizer::SKIP_NULL_VALUES => true, // Highly recommended!
-                JsonEncode::OPTIONS => JSON_THROW_ON_ERROR, // Optional
+                AbstractObjectNormalizer::SKIP_NULL_VALUES => true,
+                JsonEncode::OPTIONS => JSON_THROW_ON_ERROR,
             ]
         );
 
         MiniEngine::setSession('webauthn_credential_options', $json_string);
 
         return json_decode($json_string);
+    }
+
+    private static function getAttestationStatementSupportManager()
+    {
+        $attestation_statement_support_manager = AttestationStatementSupportManager::create();
+        $attestation_statement_support_manager->add(NoneAttestationStatementSupport::create());
+        return $attestation_statement_support_manager;
+    }
+
+    private static function getSerializer($attestation_statement_support_manager = null)
+    {
+        if (is_null($attestation_statement_support_manager)) {
+            $attestation_statement_support_manager = self::getAttestationStatementSupportManager();
+        }
+        $factory = new WebauthnSerializerFactory($attestation_statement_support_manager);
+        $serializer = $factory->create();
+
+        return $serializer;
+    }
+
+    private static function getCeremonyStepManager($ceremony_type = 'creation') 
+    {
+        $csmFactory = new CeremonyStepManagerFactory();
+
+        if ($ceremony_type == 'creation') {
+            return  $csmFactory->creationCeremony();
+        } else {
+            return  $csmFactory->requestCeremony();
+        }
     }
 }
