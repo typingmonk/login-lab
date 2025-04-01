@@ -46,6 +46,7 @@ function sendCredentialToServer(url, credentialData) {
       window.location.href = "/";
     } else {
       alert('error: ' + (res.error || 'unknown error'));
+      //TODO Add redirect to res.next
     }
   })
 }

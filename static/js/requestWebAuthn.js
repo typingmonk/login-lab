@@ -36,8 +36,5 @@ async function getWebAuthnCredential(publicKeyOptions) {
     csrf_token: $('input[name="csrf_token"]').val(),
   };
 
-  alert(credentialData);
-
-  console.log(credentialData);
-  //TODO credentialData send to server
+  sendCredentialToServer('/auth/verifyWebAuthnRequest', credentialData);
 }
