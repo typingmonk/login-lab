@@ -307,6 +307,67 @@ class AuthController extends MiniEngine_Controller
         return $this->json(['success' => true, 'message' => 'WebAuthn Login Success.']);
     }
 
+    public function signupAction()
+    {
+        $isLoggedIn = false;
+        $user_id = MiniEngine::getSession('user_id');
+        $user = null;
+        if (isset($user_id)) {
+            $user = User::find($user_id);
+            $isLoggedIn = isset($user);
+        }
+
+        if ($isLoggedIn) {
+            return $this->alert('Already logged in', '/');
+        }
+
+        $this->init_csrf();
+    }
+
+    public function signupPostAction()
+    {
+        $this->init_csrf();
+        $csrf_token = $_POST['csrf_token'] ?? null;
+
+        if ($csrf_token !== $this->view->csrf_token) {
+            return $this->alert('Invalid CSRF token', '/auth/signup');
+        }
+
+        $isLoggedIn = false;
+        $user_id = MiniEngine::getSession('user_id');
+        $user = null;
+        if (isset($user_id)) {
+            $user = User::find($user_id);
+            $isLoggedIn = isset($user);
+        }
+
+        if ($isLoggedIn) {
+            return $this->alert('Already logged in', '/');
+        }
+
+        $username = $_POST['username'] ?? null;
+        $displayname = $_POST['displayname'] ?? null;
+        $password = $_POST['password'] ?? null;
+        $password_confirm = $_POST['password_confirm'] ?? null;
+
+        if (empty($username) or empty($displayname) or empty($password) or empty($password_confirm)) {
+            return $this->alert('Empty string not allowed', '/auth/signup');
+        }
+
+        if ($password != $password_confirm) {
+            return $this->alert('Password confirmation failed');
+        }
+
+        $user = User::create($displayname);
+        $user_associate = UserAssociate::createViaPassword($user->user_id, $username, $password);
+
+        if (is_null($user) or is_null($user_associate)) {
+            return $this->alert('Internal Error. Please try again later', '/auth/signup');
+        }
+
+        return $this->alert('Account create successed. Please login', '/');
+    }
+
     public function logoutAction()
     {
         MiniEngine::deleteSession('user_id');
