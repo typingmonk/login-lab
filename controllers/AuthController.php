@@ -358,6 +358,11 @@ class AuthController extends MiniEngine_Controller
             return $this->alert('Password confirmation failed');
         }
 
+        $existed_user_associate = UserAssociate::search(['login_id' => $username])->first();
+        if (isset($existed_user_associate)) {
+            return $this->alert('Username already in used', '/');
+        }
+
         $user = User::create($displayname);
         $user_associate = UserAssociate::createViaPassword($user->user_id, $username, $password);
 
