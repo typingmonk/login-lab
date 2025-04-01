@@ -28,6 +28,16 @@ class AuthController extends MiniEngine_Controller
             return $this->alert("Invalid CSRF token", '/');
         }
 
+        $login_types = ['password', 'web_authn'];
+        $input_auth_method = filter_input(INPUT_GET, 'type',FILTER_SANITIZE_STRING) ?? null;
+        $auth_method = null;
+        foreach ($login_types as $login_type) {
+            if ($input_auth_method == $login_type) {
+                $auth_method = $login_type;
+                break;
+            }
+        }
+
         $username = $_POST['username'] ?? null;
         $login_data = UserAssociate::getLoginData($username);
 
@@ -36,7 +46,8 @@ class AuthController extends MiniEngine_Controller
         }
 
         MiniEngine::setSession('target_user_id', $login_data->user_id);
-        $this->view->auth_method = $login_data->auth_method;
+        $this->view->username = $username;
+        $this->view->auth_method = $auth_method ?? $login_data->auth_method;
     }
 
     public function passwordLoginAction()

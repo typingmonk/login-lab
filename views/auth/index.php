@@ -14,6 +14,7 @@ $auth_method = $this->auth_method;
                 <label for="password" class="form-label">密碼</label>
                 <input id="password" name="password" type="password" class="form-control">
               </div>
+            <input type="hidden" name="username" value="<?= $this->escape($this->username) ?>">
               <input type="hidden" name="csrf_token" value="<?= $this->escape($this->csrf_token) ?>">
               <div class="text-center">
                 <button type="submit" class="btn btn-primary">Submit</button>
@@ -26,6 +27,25 @@ $auth_method = $this->auth_method;
               <input type="hidden" name="csrf_token" value="<?= $this->escape($this->csrf_token) ?>">
               <div class="text-center">
                 <button type="submit" class="btn btn-primary">Next</button>
+              </div>
+            </form>
+          <?php } ?>
+          <hr>
+          <?php if ($auth_method != 'password') { ?>
+            <form class="pt-1" method="post" action="/auth?type=password">
+              <input type="hidden" name="csrf_token" value="<?= $this->escape($this->csrf_token) ?>">
+              <input type="hidden" name="username" value="<?= $this->escape($this->username) ?>">
+              <div class="text-center">
+                <button type="submit" class="w-75 btn btn-secondary">改用密碼登入</button>
+              </div>
+            </form>
+          <?php } ?>
+          <?php if ($auth_method != 'web_authn') { ?>
+            <form class="pt-1" method="post" action="/auth?type=web_authn">
+              <input type="hidden" name="csrf_token" value="<?= $this->escape($this->csrf_token) ?>">
+              <input type="hidden" name="username" value="<?= $this->escape($this->username) ?>">
+              <div class="text-center">
+                <button type="submit" class="w-75 btn btn-secondary">改用 WebAuthn 登入</button>
               </div>
             </form>
           <?php } ?>
