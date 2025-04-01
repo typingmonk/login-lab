@@ -14,7 +14,7 @@ $auth_method = $this->auth_method;
                 <label for="password" class="form-label">密碼</label>
                 <input id="password" name="password" type="password" class="form-control">
               </div>
-            <input type="hidden" name="username" value="<?= $this->escape($this->username) ?>">
+              <input type="hidden" name="username" value="<?= $this->escape($this->username) ?>">
               <input type="hidden" name="csrf_token" value="<?= $this->escape($this->csrf_token) ?>">
               <div class="text-center">
                 <button type="submit" class="btn btn-primary">Submit</button>
