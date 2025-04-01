@@ -10,10 +10,13 @@ use Webauthn\Denormalizer\WebauthnSerializerFactory;
 use Symfony\Component\Serializer\Encoder\JsonEncode;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Webauthn\AuthenticatorAttestationResponse;
+use Webauthn\AuthenticatorAssertionResponse;
 use Webauthn\CeremonyStep\CeremonyStepManagerFactory;
 use Webauthn\AuthenticatorAttestationResponseValidator;
+use Webauthn\AuthenticatorAssertionResponseValidator;
 use Webauthn\PublicKeyCredentialSource;
 use Webauthn\PublicKeyCredentialRequestOptions;
+use Webauthn\AuthenticatorAAssertionssertionResponse;
 
 class AuthController extends MiniEngine_Controller
 {
@@ -135,7 +138,7 @@ class AuthController extends MiniEngine_Controller
         $authenticator_attestation_response_validator = AuthenticatorAttestationResponseValidator::create($creation_CSM);
 
         //get credential options back from session
-        $json_string = MiniEngine::getSession('webauthn_credential_options');
+        $json_string = MiniEngine::getSession('webauthn_credential_creation_options');
         $public_key_credential_creation_options = $serializer->deserialize(
             $json_string,
             PublicKeyCredentialCreationOptions::class,
@@ -200,6 +203,99 @@ class AuthController extends MiniEngine_Controller
         return $this->json($public_key_credential_request_options);
     }
 
+    public function verifyWebAuthnRequestAction()
+    {
+        $this->init_csrf();
+        $json_data = file_get_contents('php://input');
+        $data = json_decode($json_data);
+        $csrf_token = $data->csrf_token ?? null;
+
+        if ($csrf_token !== $this->view->csrf_token) {
+            return $this->json(['error' => 'Invalid CSRF token']);
+        }
+
+        $isLoggedIn = false;
+        $user_id = MiniEngine::getSession('user_id');
+        $user = null;
+        if (isset($user_id)) {
+            $user = User::find($user_id);
+            $isLoggedIn = isset($user);
+        }
+
+        if ($isLoggedIn) {
+            return $this->json(['error' => 'Already logged in']);
+        }
+
+        $data_str = json_encode($data);
+
+        $serializer = self::getSerializer();
+        $public_key_credential = $serializer->deserialize(
+            $data_str,
+            PublicKeyCredential::class,
+            'json'
+        );
+
+        // check client is in Assertion step
+        if (!$public_key_credential->response instanceof AuthenticatorAssertionResponse) {
+            return $this->json(['error' => 'Invalid credential response type']);
+        }
+
+        // prepare ingredients for validation
+        $target_user_id = MiniEngine::getSession('target_user_id');
+        $user_associates = UserAssociate::search([
+            'user_id' => $target_user_id,
+            'login_type' => 'web_authn',
+        ]);
+
+        if ($user_associates->count() == 0) {
+            return $this->json(['error' => 'No credential found']);
+        }
+
+        $public_key_credential_source = null;
+        $raw_id = $public_key_credential->rawId;
+        $saved_credentials = $user_associates->toArray('auth_credential');
+        foreach ($saved_credentials as $saved_credential) {
+            $saved_credential = $serializer->deserialize(
+                $saved_credential,
+                PublicKeyCredentialSource::class,
+                'json'
+            );
+            $saved_raw_id = $saved_credential->publicKeyCredentialId;
+            if ($saved_raw_id === $raw_id) {
+                $public_key_credential_source = $saved_credential;
+                break;
+            }
+        }
+
+        if (is_null($public_key_credential_source)) {
+            return $this->json(['error' => 'No credential matched']);
+        }
+
+        //get credential options back from session
+        $json_string = MiniEngine::getSession('webauthn_credential_request_options');
+        $public_key_credential_request_options = $serializer->deserialize(
+            $json_string,
+            PublicKeyCredentialRequestOptions::class,
+            'json'
+        );
+
+        //get validator
+        $request_CSM = self::getCeremonyStepManager('request');
+        $authenticator_assertion_response_validator = AuthenticatorAssertionResponseValidator::create($request_CSM);
+
+        //validate
+        $public_key_credential_source = $authenticator_assertion_response_validator->check(
+            $public_key_credential_source,
+            $public_key_credential->response,
+            $public_key_credential_request_options,
+            $_SERVER['HTTP_HOST'],
+            base64_encode($target_user_id),
+        );
+
+        MiniEngine::setSession('user_id', $target_user_id);
+        return $this->json(['success' => true, 'message' => 'WebAuthn Login Success.']);
+    }
+
     public function logoutAction()
     {
         MiniEngine::deleteSession('user_id');
@@ -238,7 +334,7 @@ class AuthController extends MiniEngine_Controller
             ]
         );
 
-        MiniEngine::setSession('webauthn_credential_options', $json_string);
+        MiniEngine::setSession('webauthn_credential_creation_options', $json_string);
 
         return json_decode($json_string);
     }
@@ -270,6 +366,8 @@ class AuthController extends MiniEngine_Controller
                 JsonEncode::OPTIONS => JSON_THROW_ON_ERROR,
             ]
         );
+
+        MiniEngine::setSession('webauthn_credential_request_options', $json_string);
 
         return json_decode($json_string);
     }
