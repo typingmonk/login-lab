@@ -35,22 +35,5 @@ async function createWebAuthnCredential(publicKeyOptions) {
   };
 
   //send credentail to the server
-  sendCredentialToServer(credentialData);
-}
-
-function sendCredentialToServer(credentialData) {
-  $.post({
-    url: '/auth/verifyWebAuthnRegistration',
-    data: JSON.stringify(credentialData),
-    contentType: 'application/json',
-    dataType: 'json'
-  })
-  .done(function (res) {
-    if (res.success) {
-      alert(res.message);
-      window.location.reload();
-    } else {
-      alert('error: ' + (res.error || 'unknown error'));
-    }
-  })
+  sendCredentialToServer('/auth/verifyWebAuthnRegistration', credentialData);
 }

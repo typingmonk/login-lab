@@ -32,3 +32,20 @@ function arrayBufferToBase64(arrayBuffer) {
 
   return base64;
 }
+
+function sendCredentialToServer(url, credentialData) {
+  $.post({
+    url: url,
+    data: JSON.stringify(credentialData),
+    contentType: 'application/json',
+    dataType: 'json'
+  })
+  .done(function (res) {
+    if (res.success) {
+      alert(res.message);
+      window.location.href = "/";
+    } else {
+      alert('error: ' + (res.error || 'unknown error'));
+    }
+  })
+}
