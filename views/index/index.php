@@ -25,6 +25,10 @@ if (isset($user_id)) {
                 <button type="submit" class="btn btn-primary">Submit</button>
               </div>
             </form>
+            <hr>
+            <div class="text-center">
+              <a href="/auth/signup" class="w-75 btn btn-secondary">註冊</a>
+            </div>
           <?php } ?>
           <?php if ($isLoggedIn) { ?>
             <p class="mb-3 fs-2 ">Hello <span class="fw-semibold"><?= $this->escape($user->displayname) ?></span></p>
